@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mines Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00ff5f;
+      --primary-dark: #00cc4d;
+      --danger: #ff3b30;
+      --warning: #ffcc00;
+      --background: #12151c;
+      --panel: #1a1e28;
+      --text: #fff;
+      --text-secondary: #b8b8b8;
+      --border-radius: 8px;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app-container {
+      display: flex;
+      max-width: 900px;
+      width: 100%;
+      gap: 15px;
+    }
+    .menu-panel {
+      width: 280px;
+      background: var(--panel);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .game-panel {
+      flex: 1;
+      background: var(--panel);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    .screen {
+      transition: all 0.3s ease;
+    }
+    .screen.hidden {
+      display: none;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 1.3rem;
+    }
+    h3 {
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+    }
+    .input-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--border-radius);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    .error-message {
+      color: var(--danger);
+      font-size: 0.7rem;
+      margin-top: 5px;
+      display: none;
+    }
+    .auth-error {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+    .btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .link {
+      text-align: center;
+      margin-top: 15px;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    
+    /* Game screen */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+    .balance {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-box {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--border-radius);
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .mines-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 15px 0;
+    }
+    .tile {
+      aspect-ratio: 1/1;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+    .tile.revealed {
+      pointer-events: none;
+    }
+    .tile.mine {
+      background: var(--danger);
+    }
+    .tile.gem {
+      background: rgba(0,255,95,0.1);
+    }
+    .message {
+      padding: 12px;
+      border-radius: var(--border-radius);
+      text-align: center;
+      margin-top: 15px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .message.show {
+      display: block;
+    }
+    .success {
+      background: rgba(0,255,95,0.1);
+      color: var(--primary);
+    }
+    .danger {
+      background: rgba(255,59,48,0.1);
+      color: var(--danger);
+    }
+    
+    /* Bet controls */
+    .bet-controls {
+      margin-bottom: 15px;
+    }
+    .bet-amount input {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .bet-info {
+      font-size: 0.8rem;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .potential-win {
+      color: var(--primary);
+      font-weight: bold;
+    }
+    
+    /* Difficulty */
+    .difficulty-selector {
+      margin-bottom: 15px;
+    }
+    .difficulty-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .difficulty-btn {
+      flex: 1;
+      padding: 8px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: var(--border-radius);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .difficulty-btn.active {
+      background: var(--primary);
+      color: #000;
+    }
+    
+    /* High stakes warning */
+    .high-stakes-warning {
+      color: var(--warning);
+      font-size: 0.8rem;
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+    }
+    
+    /* Quick bet buttons */
+    .quick-bet-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .quick-bet-btn {
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+    .quick-bet-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Menu Panel (Left) -->
+    <div class="menu-panel">
+      <!-- Auth Screens -->
+      <div class="screen" id="login-screen">
+        <h2>Login</h2>
+        <div class="auth-error" id="login-error"></div>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="login-username" placeholder="Enter username" autocomplete="username">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button class="btn" id="login-btn">Login</button>
+        <div class="link" id="show-signup">No account? Sign up</div>
+      </div>
+
+      <div class="screen hidden" id="signup-screen">
+        <h2>Sign Up</h2>
+        <div class="auth-error" id="signup-error"></div>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="signup-username" placeholder="Choose username" autocomplete="username">
+        </div>
+        <div class="input-group">
+          <label>Password (min 6 chars)</label>
+          <input type="password" id="signup-password" placeholder="Create password" autocomplete="new-password">
+        </div>
+        <div class="input-group">
+          <label>Confirm Password</label>
+          <input type="password" id="signup-confirm-password" placeholder="Confirm password" autocomplete="new-password">
+        </div>
+        <button class="btn" id="signup-btn">Sign Up</button>
+        <div class="link" id="show-login">Have an account? Login</div>
+      </div>
+
+      <!-- Game Controls (shown after login) -->
+      <div class="screen hidden" id="game-controls">
+        <div class="header">
+          <div>Welcome, <span id="username-display"></span></div>
+          <div>Balance: $<span id="balance" class="balance">0</span></div>
+        </div>
+        
+        <div class="stats">
+          <div class="stat-box">
+            <div class="stat-label">Games Played</div>
+            <div class="stat-value" id="games-played">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Wins</div>
+            <div class="stat-value" id="total-wins">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value" id="win-rate">0%</div>
+          </div>
+        </div>
+        
+        <div class="quick-bet-buttons">
+          <button class="quick-bet-btn" data-amount="10">+10</button>
+          <button class="quick-bet-btn" data-amount="25">+25</button>
+          <button class="quick-bet-btn" data-amount="50">+50</button>
+          <button class="quick-bet-btn" data-amount="100">+100</button>
+        </div>
+        
+        <div class="bet-controls">
+          <h3>Bet Amount</h3>
+          <input type="number" id="bet-amount" value="10" min="10" step="1" class="bet-amount">
+          
+          <div class="bet-info">
+            <div>Potential win: <span class="potential-win" id="potential-win">$13.00</span></div>
+          </div>
+        </div>
+        
+        <div class="difficulty-selector">
+          <h3>Mines</h3>
+          <div class="difficulty-buttons">
+            <button class="difficulty-btn active" data-mines="3">3</button>
+            <button class="difficulty-btn" data-mines="5">5</button>
+            <button class="difficulty-btn" data-mines="7">7</button>
+            <button class="difficulty-btn" data-mines="10">10</button>
+          </div>
+        </div>
+        
+        <div class="high-stakes-warning" id="high-stakes-warning">
+          High stakes mode! You must clear all gems to win.
+        </div>
+        
+        <button class="btn" id="play-btn">Play</button>
+        <button class="btn" id="cashout-btn" disabled>Cashout</button>
+      </div>
+    </div>
+
+    <!-- Game Panel (Right) -->
+    <div class="game-panel">
+      <div class="mines-grid" id="grid"></div>
+      <div class="message" id="message"></div>
+    </div>
+  </div>
+
+  <script>
+    // Game state
+    const state = {
+      user: null,
+      balance: 100,
+      grid: [],
+      revealed: 0,
+      gameActive: false,
+      currentBet: 10,
+      minesCount: 3,
+      highStakes: false,
+      stats: {
+        gamesPlayed: 0,
+        totalWins: 0,
+        totalEarnings: 0
+      }
+    };
+
+    // Database
+    const db = {
+      users: JSON.parse(localStorage.getItem('mines_db')) || [],
+      
+      findUser(username) {
+        return this.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+      },
+      
+      createUser(user) {
+        this.users.push({
+          ...user,
+          balance: 100,
+          stats: {
+            gamesPlayed: 0,
+            totalWins: 0,
+            totalEarnings: 0
+          },
+          createdAt: new Date().toISOString()
+        });
+        this.save();
+      },
+      
+      updateUser(username, updateFn) {
+        const user = this.findUser(username);
+        if (user) {
+          updateFn(user);
+          this.save();
+        }
+      },
+      
+      save() {
+        localStorage.setItem('mines_db', JSON.stringify(this.users));
+      }
+    };
+
+    // Calculate payout multiplier based on mines count
+    function calculatePayout(mines) {
+      const payouts = {
+        3: 1.3,
+        5: 1.5,
+        7: 1.8,
+        10: 2.2
+      };
+      return payouts[mines] || 1.5;
+    }
+
+    // Update all game calculations
+    function updateGameCalculations() {
+      // Update potential win
+      const payoutMultiplier = calculatePayout(state.minesCount);
+      const potentialWin = state.currentBet * payoutMultiplier;
+      elements.potentialWin.textContent = `$${potentialWin.toFixed(2)}`;
+      
+      // Check for high stakes mode
+      state.highStakes = state.currentBet >= 100;
+      elements.highStakesWarning.style.display = state.highStakes ? 'block' : 'none';
+    }
+
+    // DOM elements
+    const elements = {
+      // Screens
+      loginScreen: document.getElementById('login-screen'),
+      signupScreen: document.getElementById('signup-screen'),
+      gameControls: document.getElementById('game-controls'),
+      
+      // Login
+      loginUsername: document.getElementById('login-username'),
+      loginPassword: document.getElementById('login-password'),
+      loginBtn: document.getElementById('login-btn'),
+      showSignup: document.getElementById('show-signup'),
+      loginError: document.getElementById('login-error'),
+      
+      // Signup
+      signupUsername: document.getElementById('signup-username'),
+      signupPassword: document.getElementById('signup-password'),
+      signupConfirm: document.getElementById('signup-confirm-password'),
+      signupBtn: document.getElementById('signup-btn'),
+      showLogin: document.getElementById('show-login'),
+      signupError: document.getElementById('signup-error'),
+      
+      // Game
+      usernameDisplay: document.getElementById('username-display'),
+      balanceEl: document.getElementById('balance'),
+      gridContainer: document.getElementById('grid'),
+      messageEl: document.getElementById('message'),
+      playBtn: document.getElementById('play-btn'),
+      cashoutBtn: document.getElementById('cashout-btn'),
+      betAmount: document.getElementById('bet-amount'),
+      potentialWin: document.getElementById('potential-win'),
+      minesCountEl: document.getElementById('mines-count'),
+      difficultyButtons: document.querySelectorAll('.difficulty-btn'),
+      highStakesWarning: document.getElementById('high-stakes-warning'),
+      quickBetButtons: document.querySelectorAll('.quick-bet-btn'),
+      
+      // Stats
+      gamesPlayedEl: document.getElementById('games-played'),
+      totalWinsEl: document.getElementById('total-wins'),
+      winRateEl: document.getElementById('win-rate')
+    };
+
+    // Helper functions
+    function showScreen(screen) {
+      elements.loginScreen.classList.add('hidden');
+      elements.signupScreen.classList.add('hidden');
+      elements.gameControls.classList.add('hidden');
+      
+      if (screen === 'login') {
+        elements.loginScreen.classList.remove('hidden');
+        elements.loginUsername.focus();
+      } else if (screen === 'signup') {
+        elements.signupScreen.classList.remove('hidden');
+        elements.signupUsername.focus();
+      } else if (screen === 'game') {
+        elements.gameControls.classList.remove('hidden');
+      }
+    }
+
+    function showAuthError(element, message) {
+      element.textContent = message;
+      element.style.display = 'block';
+    }
+
+    function clearAuthErrors() {
+      elements.loginError.style.display = 'none';
+      elements.signupError.style.display = 'none';
+    }
+
+    function showMessage(text, type) {
+      elements.messageEl.textContent = text;
+      elements.messageEl.className = `message show ${type}`;
+      setTimeout(() => {
+        elements.messageEl.classList.remove('show');
+      }, 3000);
+    }
+
+    function updateStats() {
+      elements.gamesPlayedEl.textContent = state.stats.gamesPlayed;
+      elements.totalWinsEl.textContent = state.stats.totalWins;
+      const winRate = state.stats.gamesPlayed > 0 
+        ? Math.round((state.stats.totalWins / state.stats.gamesPlayed) * 100) 
+        : 0;
+      elements.winRateEl.textContent = `${winRate}%`;
+      elements.balanceEl.textContent = state.balance.toFixed(2);
+    }
+
+    // Auth functions
+    function login() {
+      clearAuthErrors();
+      
+      const username = elements.loginUsername.value.trim();
+      const password = elements.loginPassword.value;
+      
+      if (!username) {
+        showAuthError(elements.loginError, 'Username is required');
+        return;
+      }
+      
+      if (!password) {
+        showAuthError(elements.loginError, 'Password is required');
+        return;
+      }
+      
+      const user = db.findUser(username);
+      if (!user) {
+        showAuthError(elements.loginError, 'User not found');
+        return;
+      }
+      
+      if (password !== user.password) {
+        showAuthError(elements.loginError, 'Incorrect password');
+        return;
+      }
+      
+      // Load user data
+      state.user = user.username;
+      state.balance = user.balance;
+      state.stats = user.stats || {
+        gamesPlayed: 0,
+        totalWins: 0,
+        totalEarnings: 0
+      };
+      
+      elements.usernameDisplay.textContent = state.user;
+      updateStats();
+      updateGameCalculations();
+      
+      // Store current user in session
+      localStorage.setItem('currentUser', state.user);
+      
+      showScreen('game');
+    }
+
+    function signup() {
+      clearAuthErrors();
+      
+      const username = elements.signupUsername.value.trim();
+      const password = elements.signupPassword.value;
+      const confirm = elements.signupConfirm.value;
+      
+      if (!username) {
+        showAuthError(elements.signupError, 'Username is required');
+        return;
+      }
+      
+      if (username.length < 3) {
+        showAuthError(elements.signupError, 'Username must be at least 3 characters');
+        return;
+      }
+      
+      if (!password) {
+        showAuthError(elements.signupError, 'Password is required');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showAuthError(elements.signupError, 'Password must be at least 6 characters');
+        return;
+      }
+      
+      if (password !== confirm) {
+        showAuthError(elements.signupError, 'Passwords do not match');
+        return;
+      }
+      
+      if (db.findUser(username)) {
+        showAuthError(elements.signupError, 'Username already taken');
+        return;
+      }
+      
+      // Create user
+      db.createUser({
+        username,
+        password
+      });
+      
+      // Auto login after signup
+      state.user = username;
+      state.balance = 100;
+      state.stats = {
+        gamesPlayed: 0,
+        totalWins: 0,
+        totalEarnings: 0
+      };
+      
+      elements.usernameDisplay.textContent = state.user;
+      updateStats();
+      updateGameCalculations();
+      localStorage.setItem('currentUser', state.user);
+      
+      showMessage('Account created successfully!', 'success');
+      showScreen('game');
+    }
+
+    // Game functions
+    function startGame() {
+      if (state.gameActive) return;
+      
+      state.currentBet = parseFloat(elements.betAmount.value);
+      
+      if (state.currentBet < 10) {
+        showMessage('Minimum bet is $10', 'danger');
+        elements.betAmount.value = 10;
+        state.currentBet = 10;
+        return;
+      }
+      
+      if (state.currentBet > state.balance) {
+        showMessage('Not enough balance', 'danger');
+        return;
+      }
+      
+      // Deduct bet
+      state.balance -= state.currentBet;
+      updateStats();
+      
+      // Reset game state
+      state.grid = [];
+      state.revealed = 0;
+      state.gameActive = true;
+      
+      // Clear grid
+      elements.gridContainer.innerHTML = '';
+      elements.messageEl.className = 'message';
+      
+      // Place mines
+      const mines = new Set();
+      while (mines.size < state.minesCount) {
+        mines.add(Math.floor(Math.random() * 25));
+      }
+      
+      // Create grid
+      for (let i = 0; i < 25; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        if (mines.has(i)) tile.dataset.mine = 'true';
+        tile.addEventListener('click', () => revealTile(tile));
+        state.grid.push(tile);
+        elements.gridContainer.appendChild(tile);
+      }
+      
+      // Update UI
+      elements.playBtn.disabled = true;
+      elements.cashoutBtn.disabled = state.highStakes;
+    }
+
+    function revealTile(tile) {
+      if (!state.gameActive || tile.classList.contains('revealed')) return;
+      
+      tile.classList.add('revealed');
+      state.revealed++;
+      
+      if (tile.dataset.mine) {
+        // Mine hit
+        tile.classList.add('mine');
+        tile.textContent = '💣';
+        endGame(false);
+      } else {
+        // Safe tile
+        tile.classList.add('gem');
+        tile.textContent = '💎';
+        
+        // Check for win (must reveal all non-mine tiles in high stakes mode)
+        if ((state.highStakes && state.revealed === 25 - state.minesCount) || 
+            (!state.highStakes && state.revealed >= state.minesCount)) {
+          endGame(true);
+        } else if (!state.highStakes) {
+          // Enable cashout in normal mode after revealing at least minesCount tiles
+          elements.cashoutBtn.disabled = false;
+        }
+      }
+    }
+
+    function cashout() {
+      if (!state.gameActive || state.revealed === 0 || state.highStakes) return;
+      endGame(true);
+    }
+
+    function endGame(won) {
+      state.gameActive = false;
+      state.stats.gamesPlayed++;
+      
+      // Reveal all mines
+      state.grid.forEach(tile => {
+        if (tile.dataset.mine && !tile.classList.contains('revealed')) {
+          tile.classList.add('mine');
+          tile.textContent = '💣';
+        }
+      });
+      
+      if (won) {
+        // Calculate winnings
+        const payoutMultiplier = calculatePayout(state.minesCount);
+        let winAmount = state.currentBet * payoutMultiplier;
+        
+        // Bonus for high stakes mode
+        if (state.highStakes) {
+          winAmount *= 1.5; // 50% bonus
+          showMessage(`HIGH STAKES WIN! You won $${winAmount.toFixed(2)}!`, 'success');
+        } else {
+          showMessage(`You won $${winAmount.toFixed(2)}!`, 'success');
+        }
+        
+        state.balance += winAmount;
+        state.stats.totalWins++;
+        state.stats.totalEarnings += winAmount;
+      } else {
+        showMessage('Boom! You hit a mine', 'danger');
+      }
+      
+      // Update UI and save
+      updateStats();
+      saveUser();
+      elements.playBtn.disabled = false;
+      elements.cashoutBtn.disabled = true;
+    }
+
+    function saveUser() {
+      if (!state.user) return;
+      
+      db.updateUser(state.user, user => {
+        user.balance = state.balance;
+        user.stats = state.stats;
+      });
+    }
+
+    // Initialize
+    function init() {
+      // Check for existing session
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const user = db.findUser(currentUser);
+        if (user) {
+          // Load user data
+          state.user = user.username;
+          state.balance = user.balance;
+          state.stats = user.stats || {
+            gamesPlayed: 0,
+            totalWins: 0,
+            totalEarnings: 0
+          };
+          
+          elements.usernameDisplay.textContent = state.user;
+          updateStats();
+          updateGameCalculations();
+          showScreen('game');
+          return;
+        }
+      }
+      
+      showScreen('login');
+    }
+
+    // Event listeners
+    elements.loginBtn.addEventListener('click', login);
+    elements.signupBtn.addEventListener('click', signup);
+    elements.showSignup.addEventListener('click', () => {
+      clearAuthErrors();
+      showScreen('signup');
+    });
+    elements.showLogin.addEventListener('click', () => {
+      clearAuthErrors();
+      showScreen('login');
+    });
+    elements.playBtn.addEventListener('click', startGame);
+    elements.cashoutBtn.addEventListener('click', cashout);
+    
+    // Bet controls
+    elements.betAmount.addEventListener('input', () => {
+      state.currentBet = Math.max(10, parseFloat(elements.betAmount.value) || 10);
+      elements.betAmount.value = state.currentBet;
+      updateGameCalculations();
+    });
+    
+    // Quick bet buttons
+    elements.quickBetButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const amount = parseFloat(this.dataset.amount);
+        state.currentBet = Math.min(state.balance, state.currentBet + amount);
+        elements.betAmount.value = state.currentBet;
+        updateGameCalculations();
+      });
+    });
+    
+    // Difficulty buttons
+    elements.difficultyButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        elements.difficultyButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        state.minesCount = parseInt(this.dataset.mines);
+        updateGameCalculations();
+      });
+    });
+
+    // Start the app
+    init();
+  </script>
+</body>
+</html>
