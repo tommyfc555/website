@@ -16,6 +16,8 @@
       --text: #fff;
       --text-secondary: #b8b8b8;
       --border-radius: 8px;
+      --emerald: #00ff5f;
+      --bomb: #ff3b30;
     }
     * {
       box-sizing: border-box;
@@ -31,12 +33,16 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
+      overflow: hidden;
     }
     .app-container {
       display: flex;
       max-width: 900px;
       width: 100%;
       gap: 15px;
+      position: relative;
+      z-index: 1;
     }
     .menu-panel {
       width: 280px;
@@ -177,15 +183,18 @@
       cursor: pointer;
       font-size: 1.2rem;
       transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
     }
     .tile.revealed {
       pointer-events: none;
     }
     .tile.mine {
-      background: var(--danger);
+      background: var(--bomb);
     }
     .tile.gem {
       background: rgba(0,255,95,0.1);
+      color: var(--emerald);
     }
     .message {
       padding: 12px;
@@ -280,9 +289,185 @@
     .quick-bet-btn:hover {
       background: rgba(255,255,255,0.1);
     }
+    
+    /* Win overlay */
+    .win-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    .win-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .win-text {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px rgba(0, 255, 95, 0.5);
+    }
+    .win-amount {
+      font-size: 2rem;
+      color: #fff;
+      margin-bottom: 30px;
+    }
+    .dollar-animation {
+      position: absolute;
+      font-size: 1.5rem;
+      color: gold;
+      font-weight: bold;
+      animation: float-up 3s ease-out forwards;
+      user-select: none;
+    }
+    @keyframes float-up {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) rotate(20deg);
+        opacity: 0;
+      }
+    }
+    .continue-btn {
+      padding: 15px 30px;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: var(--border-radius);
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .continue-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.05);
+    }
+    
+    /* Explosion effect */
+    .explosion {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle, #ff5e00 0%, #ff0000 70%, transparent 100%);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: scale(0);
+      animation: explode 0.5s ease-out forwards;
+    }
+    @keyframes explode {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(15);
+        opacity: 0;
+      }
+    }
+    
+    /* Tile reveal animation */
+    .tile::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 255, 95, 0.2);
+      transform: scale(0);
+      border-radius: var(--border-radius);
+      transition: transform 0.3s ease;
+    }
+    .tile.revealed::before {
+      transform: scale(1);
+    }
+    
+    /* Top game bar */
+    .game-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(26, 30, 40, 0.9);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .game-stats {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .diamonds-collected {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 1rem;
+    }
+    .diamonds-collected span {
+      color: var(--emerald);
+      font-weight: bold;
+    }
+    .cash-value {
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .top-cashout-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .top-cashout-btn:hover {
+      background: var(--primary-dark);
+    }
+    .top-cashout-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
+  <!-- Top game bar -->
+  <div class="game-top-bar" id="game-top-bar">
+    <div class="game-stats">
+      <div class="diamonds-collected">
+        💎 <span id="diamonds-count">0</span>/<span id="total-diamonds">24</span>
+      </div>
+      <div class="cash-value" id="current-win">$0.00 (1.00x)</div>
+    </div>
+    <button class="top-cashout-btn" id="top-cashout-btn" disabled>Cashout</button>
+  </div>
+
+  <!-- Win overlay -->
+  <div class="win-overlay" id="win-overlay">
+    <div class="win-text">YOU WON!</div>
+    <div class="win-amount" id="win-amount">$0.00</div>
+    <button class="continue-btn" id="continue-btn">CONTINUE</button>
+  </div>
+
   <div class="app-container">
     <!-- Menu Panel (Left) -->
     <div class="menu-panel">
@@ -355,17 +540,17 @@
           <input type="number" id="bet-amount" value="10" min="10" step="1" class="bet-amount">
           
           <div class="bet-info">
-            <div>Potential win: <span class="potential-win" id="potential-win">$13.00</span></div>
+            <div>Potential win: <span class="potential-win" id="potential-win">$25.00</span></div>
           </div>
         </div>
         
         <div class="difficulty-selector">
           <h3>Mines</h3>
           <div class="difficulty-buttons">
-            <button class="difficulty-btn active" data-mines="3">3</button>
+            <button class="difficulty-btn active" data-mines="1">1</button>
+            <button class="difficulty-btn" data-mines="3">3</button>
             <button class="difficulty-btn" data-mines="5">5</button>
             <button class="difficulty-btn" data-mines="7">7</button>
-            <button class="difficulty-btn" data-mines="10">10</button>
           </div>
         </div>
         
@@ -394,8 +579,9 @@
       revealed: 0,
       gameActive: false,
       currentBet: 10,
-      minesCount: 3,
+      minesCount: 1, // Default to 1 mine
       highStakes: false,
+      currentMultiplier: 1.0,
       stats: {
         gamesPlayed: 0,
         totalWins: 0,
@@ -441,12 +627,19 @@
     // Calculate payout multiplier based on mines count
     function calculatePayout(mines) {
       const payouts = {
-        3: 1.3,
-        5: 1.5,
-        7: 1.8,
-        10: 2.2
+        1: 2.5,  // Higher payout for single mine
+        3: 3.0,  // Even higher payouts
+        5: 3.5,
+        7: 4.0
       };
-      return payouts[mines] || 1.5;
+      return payouts[mines] || 2.5;
+    }
+
+    // Calculate current multiplier based on revealed tiles
+    function calculateCurrentMultiplier(revealed, minesCount) {
+      const baseMultiplier = calculatePayout(minesCount);
+      // The more tiles you reveal, the higher the multiplier grows
+      return baseMultiplier + (revealed * 0.15); // Increased multiplier growth
     }
 
     // Update all game calculations
@@ -459,6 +652,20 @@
       // Check for high stakes mode
       state.highStakes = state.currentBet >= 100;
       elements.highStakesWarning.style.display = state.highStakes ? 'block' : 'none';
+    }
+
+    // Update current win display
+    function updateCurrentWin() {
+      if (!state.gameActive) {
+        elements.topCashoutBtn.disabled = true;
+        return;
+      }
+      
+      state.currentMultiplier = calculateCurrentMultiplier(state.revealed, state.minesCount);
+      const currentWin = state.currentBet * state.currentMultiplier;
+      elements.currentWin.textContent = `$${currentWin.toFixed(2)} (${state.currentMultiplier.toFixed(2)}x)`;
+      elements.diamondsCount.textContent = state.revealed;
+      elements.topCashoutBtn.disabled = false;
     }
 
     // DOM elements
@@ -500,7 +707,19 @@
       // Stats
       gamesPlayedEl: document.getElementById('games-played'),
       totalWinsEl: document.getElementById('total-wins'),
-      winRateEl: document.getElementById('win-rate')
+      winRateEl: document.getElementById('win-rate'),
+      
+      // Win overlay
+      winOverlay: document.getElementById('win-overlay'),
+      winAmount: document.getElementById('win-amount'),
+      continueBtn: document.getElementById('continue-btn'),
+      
+      // Top game bar
+      gameTopBar: document.getElementById('game-top-bar'),
+      diamondsCount: document.getElementById('diamonds-count'),
+      totalDiamonds: document.getElementById('total-diamonds'),
+      currentWin: document.getElementById('current-win'),
+      topCashoutBtn: document.getElementById('top-cashout-btn')
     };
 
     // Helper functions
@@ -546,6 +765,55 @@
         : 0;
       elements.winRateEl.textContent = `${winRate}%`;
       elements.balanceEl.textContent = state.balance.toFixed(2);
+    }
+
+    // Create dollar bill animation
+    function createDollarAnimation() {
+      const overlay = elements.winOverlay;
+      const dollarChars = ['💰', '💵', '💲', '🤑'];
+      
+      for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+          const dollar = document.createElement('div');
+          dollar.className = 'dollar-animation';
+          dollar.textContent = dollarChars[Math.floor(Math.random() * dollarChars.length)];
+          dollar.style.left = `${Math.random() * 100}%`;
+          dollar.style.top = `${Math.random() * 100}%`;
+          dollar.style.fontSize = `${Math.random() * 2 + 1}rem`;
+          overlay.appendChild(dollar);
+          
+          // Remove element after animation completes
+          setTimeout(() => {
+            dollar.remove();
+          }, 3000);
+        }, i * 100);
+      }
+    }
+
+    // Show win overlay
+    function showWinOverlay(amount) {
+      elements.winAmount.textContent = `$${amount.toFixed(2)}`;
+      elements.winOverlay.classList.add('active');
+      createDollarAnimation();
+    }
+
+    // Hide win overlay
+    function hideWinOverlay() {
+      elements.winOverlay.classList.remove('active');
+    }
+
+    // Create explosion effect
+    function createExplosion(x, y) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.style.left = `${x}px`;
+      explosion.style.top = `${y}px`;
+      document.body.appendChild(explosion);
+      
+      // Remove after animation
+      setTimeout(() => {
+        explosion.remove();
+      }, 500);
     }
 
     // Auth functions
@@ -682,10 +950,15 @@
       state.grid = [];
       state.revealed = 0;
       state.gameActive = true;
+      state.currentMultiplier = calculatePayout(state.minesCount);
       
       // Clear grid
       elements.gridContainer.innerHTML = '';
       elements.messageEl.className = 'message';
+      
+      // Update diamonds count
+      elements.totalDiamonds.textContent = 25 - state.minesCount;
+      elements.diamondsCount.textContent = '0';
       
       // Place mines
       const mines = new Set();
@@ -705,7 +978,9 @@
       
       // Update UI
       elements.playBtn.disabled = true;
-      elements.cashoutBtn.disabled = state.highStakes;
+      elements.cashoutBtn.disabled = false;
+      elements.topCashoutBtn.disabled = false;
+      updateCurrentWin();
     }
 
     function revealTile(tile) {
@@ -715,28 +990,30 @@
       state.revealed++;
       
       if (tile.dataset.mine) {
-        // Mine hit
+        // Mine hit - create explosion effect
+        const rect = tile.getBoundingClientRect();
+        createExplosion(rect.left + rect.width/2, rect.top + rect.height/2);
+        
         tile.classList.add('mine');
         tile.textContent = '💣';
         endGame(false);
       } else {
-        // Safe tile
+        // Safe tile - emerald color
         tile.classList.add('gem');
         tile.textContent = '💎';
         
-        // Check for win (must reveal all non-mine tiles in high stakes mode)
-        if ((state.highStakes && state.revealed === 25 - state.minesCount) || 
-            (!state.highStakes && state.revealed >= state.minesCount)) {
+        // Update current multiplier
+        updateCurrentWin();
+        
+        // Check for win (must reveal all non-mine tiles)
+        if (state.revealed === 25 - state.minesCount) {
           endGame(true);
-        } else if (!state.highStakes) {
-          // Enable cashout in normal mode after revealing at least minesCount tiles
-          elements.cashoutBtn.disabled = false;
         }
       }
     }
 
     function cashout() {
-      if (!state.gameActive || state.revealed === 0 || state.highStakes) return;
+      if (!state.gameActive || state.revealed === 0) return;
       endGame(true);
     }
 
@@ -753,9 +1030,8 @@
       });
       
       if (won) {
-        // Calculate winnings
-        const payoutMultiplier = calculatePayout(state.minesCount);
-        let winAmount = state.currentBet * payoutMultiplier;
+        // Calculate winnings based on current multiplier
+        let winAmount = state.currentBet * state.currentMultiplier;
         
         // Bonus for high stakes mode
         if (state.highStakes) {
@@ -768,6 +1044,9 @@
         state.balance += winAmount;
         state.stats.totalWins++;
         state.stats.totalEarnings += winAmount;
+        
+        // Show win overlay
+        showWinOverlay(winAmount);
       } else {
         showMessage('Boom! You hit a mine', 'danger');
       }
@@ -777,6 +1056,7 @@
       saveUser();
       elements.playBtn.disabled = false;
       elements.cashoutBtn.disabled = true;
+      elements.topCashoutBtn.disabled = true;
     }
 
     function saveUser() {
@@ -828,6 +1108,8 @@
     });
     elements.playBtn.addEventListener('click', startGame);
     elements.cashoutBtn.addEventListener('click', cashout);
+    elements.topCashoutBtn.addEventListener('click', cashout);
+    elements.continueBtn.addEventListener('click', hideWinOverlay);
     
     // Bet controls
     elements.betAmount.addEventListener('input', () => {
@@ -860,4 +1142,4 @@
     init();
   </script>
 </body>
-</html>
+</htmla>
